@@ -31,6 +31,7 @@ public class Config {
 	 */
 	protected void addResources( List<Object> resources ) {
 		resources.add( new HelloWorldResource() );
+		resources.add(new FTPResource());
 		// resources.add( new MaClasseDeResource() );
 	}
 	
