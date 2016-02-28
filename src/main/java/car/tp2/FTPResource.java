@@ -48,6 +48,7 @@ public class FTPResource {
 	public String connect(@PathParam("ip") String ip,@PathParam("port") int port) throws UnknownHostException, IOException
 	{
 		this.sckt = new Socket(InetAddress.getByName(ip), port);
+		this.read();
 		if(this.sckt.isConnected())
 			return this.sayHello()+"<br/><p>La connection au serveur est Ã©tablie";
 		else
@@ -56,8 +57,9 @@ public class FTPResource {
 	
 	@GET
 	@Path("/login/{user}/{pass}")
-	public String login (@PathParam("user") String user, @PathParam("pass")String pass) throws IOException
+	public String login (@PathParam("user") String user, @PathParam("pass")String pass) throws IOException, InterruptedException
 	{
+		String userRes,passRes;
 		
 		if(!this.sckt.isConnected() || this.sckt.isClosed())
 			return this.sayHello()+"<p>Vous n'êtes pas connecté au serveur.</p>";
@@ -65,20 +67,25 @@ public class FTPResource {
 		{
 			
 			this.write("USER "+user+"\n",this.sckt);
-			System.out.println(this.read());
-			if(this.read().startsWith("331"))
+			Thread.sleep(1000);
+			userRes=this.read();
+			System.out.println("user res = "+userRes);
+			if(userRes.startsWith("331"))
 			{
 				this.write("PASS "+pass+"\n", this.sckt);
-				System.out.println(this.read());
-				if(this.read().startsWith("230"))
+				Thread.sleep(1);
+				passRes= this.read();
+				System.out.println("pass res = "+passRes);
+				if(passRes.startsWith("230"))
 				{
+					System.out.println("Ore da yo");
 					return this.sayHello()+"<p>Connexion réussie.<br/>Bienvenue"+user+"</p>";
 				}
 				else
-					return this.sayHello()+"<p>1Erreur d'authentification";
+					return this.sayHello()+"<p>1Erreur d'authentification</p>";
 			}
 			else
-				return this.sayHello()+"<p>2Erreur d'authentification";
+				return this.sayHello()+"<p>2Erreur d'authentification</p>";
 			
 			
 		}
@@ -101,10 +108,10 @@ public class FTPResource {
 	
 	public void write(String msg, Socket socket) throws IOException{
 		
-		OutputStream os = socket.getOutputStream();
-		DataOutputStream dos = new DataOutputStream(os);
-		dos.write(msg.getBytes());
-		dos.flush();
+		this.os = socket.getOutputStream();
+		this.dos = new DataOutputStream(this.os);
+		this.dos.write(msg.getBytes());
+		this.dos.flush();
 	}
 
 }
