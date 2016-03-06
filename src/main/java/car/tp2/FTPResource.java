@@ -2,6 +2,7 @@ package main.java.car.tp2;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -123,7 +124,7 @@ public class FTPResource {
 					res=this.read(this.scktTransfert);
 					System.out.println(res);
 				}
-				return res;
+				return this.header()+this.generateList(res);
 			}
 		}
 		else
@@ -133,6 +134,37 @@ public class FTPResource {
 		
 		
 		
+	}
+	
+	@GET
+	@Path("/download/{file}")
+	public String download(@PathParam ("file") String file) throws IOException
+	{
+		if(!this.sckt.isConnected())
+			return this.header()+"<p>Vous devez vous connecter à un serveur FTP pour continuer</p>";
+		else if(!this.scktTransfert.isConnected())
+		{
+			this.pasv();
+		}
+		this.write("RETR "+file, this.sckt);
+		String code = this.read(this.sckt);
+		if(code.startsWith("550"))
+		{
+			return this.header()+"<p>Erreur 550</p>";
+			
+		}
+		else if(code.startsWith("125"))
+		{
+			return "test";
+		}
+		else if (code.startsWith("226"))
+		{
+			System.out.println(this.scktTransfert);
+			return "toto" ;
+		}
+			
+		else
+			return "error "+code;
 	}
 	
 	public Socket pasv() throws IOException
@@ -178,6 +210,20 @@ public class FTPResource {
 		this.dos = new DataOutputStream(this.os);
 		this.dos.write(msg.getBytes());
 		this.dos.flush();
+	}
+	
+	private String generateList(String text)
+	{
+		String listhtml = "<ul>";
+		String[] list = text.split("\t");
+		for(String element : list)
+		{
+			listhtml+="<li><a href=\"download/"+element+"\">"+element+"</a>";
+			listhtml+="</li>";
+			
+		}
+		listhtml+="</ul>";
+		return listhtml;
 	}
 
 }
