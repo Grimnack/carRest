@@ -108,8 +108,11 @@ public class FTPResource {
 	@GET
 	@Path("/list")
 	public String list() throws IOException
-	{
-		this.scktTransfert=this.pasv();
+	{	
+		System.out.println(this.scktTransfert);
+		if (this.scktTransfert==null||this.scktTransfert.isClosed()||(!this.scktTransfert.isConnected()))
+			System.out.println("on demande un pasv");
+			this.scktTransfert=this.pasv();
 		if(this.scktTransfert != null && this.scktTransfert.isConnected())
 		{
 			String res="";
@@ -121,10 +124,16 @@ public class FTPResource {
 				res = this.read(this.sckt);
 				if(res.startsWith("125"))
 				{
-					res=this.read(this.scktTransfert);
+					String rest=this.read(this.scktTransfert);
 					System.out.println(res);
+					res = this.read(this.sckt);
+					if (res.startsWith("226"))
+						return this.header()+this.generateList(rest);
+					else 
+						return this.header()+"<p> erreur transfert </p>" ;
+				}else {
+					return this.header()+"<p> erreur debut transfert </p>" ;
 				}
-				return this.header()+this.generateList(res);
 			}
 		}
 		else
@@ -141,12 +150,9 @@ public class FTPResource {
 	public String download(@PathParam ("file") String file) throws IOException
 	{
 		if(!this.sckt.isConnected())
-			return this.header()+"<p>Vous devez vous connecter à un serveur FTP pour continuer</p>";
-		else if(!this.scktTransfert.isConnected())
-		{
-			this.pasv();
-		}
-		this.write("RETR "+file, this.sckt);
+			return this.header()+"<p>Vous devez vous connecter ï¿½ un serveur FTP pour continuer</p>";
+		this.scktTransfert = this.pasv();
+		this.write("RETR "+file+"\n", this.sckt);
 		String code = this.read(this.sckt);
 		if(code.startsWith("550"))
 		{
@@ -155,12 +161,14 @@ public class FTPResource {
 		}
 		else if(code.startsWith("125"))
 		{
-			return "test";
-		}
-		else if (code.startsWith("226"))
-		{
-			System.out.println(this.scktTransfert);
-			return "toto" ;
+			code = this.read(this.sckt) ;
+			if(code.startsWith("226")){
+				return this.read(this.scktTransfert);
+				//System.out.println(this.read(this.scktTransfert));
+				//return "sauce" ;
+			}
+			return "pas sauce" ;
+		
 		}
 			
 		else
@@ -174,12 +182,10 @@ public class FTPResource {
 		response =this.read(this.sckt);
 		
 		System.out.println("res = "+response);
-		String ip = response.substring("227 Entering passive mode (".length() , "227 Entering passive mode (127,0,0,1,170,126)".length()-1);
-		System.out.println(ip);
-		String[] liste = ip.split(",");
-		String addr = liste[0]+'.'+liste[1]+'.'+liste[2]+'.'+liste[3] ;
-		int partie1 = Integer.parseInt(liste[4]);
-		int partie2 = Integer.parseInt(liste[5]);
+		String[] ip = response.split("[^0-9]+") ;
+		String addr = ip[1]+'.'+ip[2]+'.'+ip[3]+'.'+ip[4] ;
+		int partie1 = Integer.parseInt(ip[5]);
+		int partie2 = Integer.parseInt(ip[6]);
 		int port = partie1*256 + partie2 ;
 		
 		System.out.println(addr);
@@ -197,6 +203,7 @@ public class FTPResource {
 
 			String s = buff.readLine();
 			//System.out.println(s);
+			
 			return s;
 
 		} catch (IOException e) {
