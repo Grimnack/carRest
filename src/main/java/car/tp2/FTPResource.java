@@ -169,7 +169,7 @@ public class FTPResource {
 		else if(code.startsWith("125"))
 		{
 			System.out.println("xsvdvsqvfq");
-			String code2 = this.read(this.sckt) ;
+			String code2 = this.read(this.sckt) ;//je crois que ça bloque ici.
 			System.out.println(code2);
 			if(code2.startsWith("226")){
 				//return this.read(this.scktTransfert);
