@@ -266,6 +266,7 @@ public class FTPResource {
 			ResponseBuilder rb = Response.ok(tempFile);
 			rb.header("content-disposition", "attachement; filename="+tempFile.getName());
 			Response response = rb.build();
+			System.out.println("test");
 			return response;
 			
 			//return s ;
