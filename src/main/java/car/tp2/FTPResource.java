@@ -58,8 +58,8 @@ public class FTPResource {
 	public String connect(@FormParam("ip") String ip,@FormParam("port") int port) throws UnknownHostException, IOException
 	{
 		this.sckt = new Socket(InetAddress.getByName(ip), port);
-		this.read(this.sckt);
-		if(this.sckt.isConnected())
+		String check = this.read(this.sckt);
+		if(check.startsWith("200"))
 			return this.header()+"<br/><p>La connection au serveur est établie"+
 			"<p>Indiquez vos identifiants du serveur pour vous loguer.</p>" +
 			"<form name=\"fconnect\" method=\"post\" action=\"login\">"+
@@ -200,15 +200,26 @@ public class FTPResource {
 			this.is = socket.getInputStream();
 			this.isr = new InputStreamReader(is);
 			this.buff = new BufferedReader(isr);
-
-			String s = buff.readLine();
-			//System.out.println(s);
+			String s = "" ;
+			String tmp ;
+			s = buff.readLine();
+//			while((tmp = buff.readLine()) != null ) {
+//				System.out.println("prout");
+//				s = s + tmp ;
+//			}
+			System.out.println("bibo");
+			System.out.println(s);
+			
 			
 			return s;
 
 		} catch (IOException e) {
 			return "iofail" ;
 		}
+	}
+	
+	public String readBuff(Socket socket, int nboctet){
+		return "" ;
 	}
 	
 	public void write(String msg, Socket socket) throws IOException{
