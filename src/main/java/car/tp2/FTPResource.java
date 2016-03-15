@@ -111,8 +111,10 @@ public class FTPResource {
 	{	
 		System.out.println(this.scktTransfert);
 		if (this.scktTransfert==null||this.scktTransfert.isClosed()||(!this.scktTransfert.isConnected()))
+		{
 			System.out.println("on demande un pasv");
 			this.scktTransfert=this.pasv();
+		}
 		if(this.scktTransfert != null && this.scktTransfert.isConnected())
 		{
 			String res="";
@@ -151,9 +153,14 @@ public class FTPResource {
 	{
 		if(!this.sckt.isConnected())
 			return this.header()+"<p>Vous devez vous connecter � un serveur FTP pour continuer</p>";
-		this.scktTransfert = this.pasv();
+		if (this.scktTransfert==null||this.scktTransfert.isClosed()||(!this.scktTransfert.isConnected()))
+		{
+			System.out.println("on demande un pasv pou dl");
+			this.scktTransfert=this.pasv();
+		}
 		this.write("RETR "+file+"\n", this.sckt);
 		String code = this.read(this.sckt);
+		System.out.println("code dl = "+code);
 		if(code.startsWith("550"))
 		{
 			return this.header()+"<p>Erreur 550</p>";
@@ -161,11 +168,13 @@ public class FTPResource {
 		}
 		else if(code.startsWith("125"))
 		{
-			code = this.read(this.sckt) ;
-			if(code.startsWith("226")){
-				return this.read(this.scktTransfert);
+			System.out.println("xsvdvsqvfq");
+			String code2 = this.read(this.sckt) ;//je crois que ça bloque ici.
+			System.out.println(code2);
+			if(code2.startsWith("226")){
+				//return this.read(this.scktTransfert);
 				//System.out.println(this.read(this.scktTransfert));
-				//return "sauce" ;
+				return "sauce" ;
 			}
 			return "pas sauce" ;
 		
@@ -209,7 +218,6 @@ public class FTPResource {
 //			}
 			System.out.println("bibo");
 			System.out.println(s);
-			
 			
 			return s;
 
