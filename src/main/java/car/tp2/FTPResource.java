@@ -153,11 +153,7 @@ public class FTPResource {
 	{
 		if(!this.sckt.isConnected())
 			return this.header()+"<p>Vous devez vous connecter � un serveur FTP pour continuer</p>";
-		if (this.scktTransfert==null||this.scktTransfert.isClosed()||(!this.scktTransfert.isConnected()))
-		{
-			System.out.println("on demande un pasv pou dl");
-			this.scktTransfert=this.pasv();
-		}
+		this.scktTransfert = this.pasv();
 		this.write("RETR "+file+"\n", this.sckt);
 		String code = this.read(this.sckt);
 		System.out.println("code dl = "+code);
@@ -170,11 +166,11 @@ public class FTPResource {
 		{
 			System.out.println("xsvdvsqvfq");
 			String code2 = this.read(this.sckt) ;//je crois que ça bloque ici.
-			System.out.println(code2);
+//			System.out.println(code2);
 			if(code2.startsWith("226")){
-				//return this.read(this.scktTransfert);
-				//System.out.println(this.read(this.scktTransfert));
-				return "sauce" ;
+				return this.readFile(this.scktTransfert);
+//				System.out.println(this.read(this.scktTransfert));
+//				return "sauce" ;
 			}
 			return "pas sauce" ;
 		
@@ -210,12 +206,7 @@ public class FTPResource {
 			this.isr = new InputStreamReader(is);
 			this.buff = new BufferedReader(isr);
 			String s = "" ;
-			String tmp ;
 			s = buff.readLine();
-//			while((tmp = buff.readLine()) != null ) {
-//				System.out.println("prout");
-//				s = s + tmp ;
-//			}
 			System.out.println("bibo");
 			System.out.println(s);
 			
@@ -226,8 +217,25 @@ public class FTPResource {
 		}
 	}
 	
-	public String readBuff(Socket socket, int nboctet){
-		return "" ;
+	public String readFile(Socket socket){
+		try {
+			this.is = socket.getInputStream();
+			this.isr = new InputStreamReader(is);
+			this.buff = new BufferedReader(isr);
+			String s = "" ;
+			String tmp ;
+			while((tmp = buff.readLine()) != null ) {
+				s = s + tmp + "\n" ;
+			}
+			buff.close();
+			isr.close();
+			is.close();
+			System.out.println(s);
+			return s ;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			return "quentin de la vallée des phalempins" ;
+		}
 	}
 	
 	public void write(String msg, Socket socket) throws IOException{
