@@ -1,8 +1,10 @@
 package main.java.car.tp2;
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -11,6 +13,7 @@ import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.regex.Pattern;
 
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
@@ -20,7 +23,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 
 /**
  * Exemple de ressource REST accessible a l'adresse :
@@ -38,6 +43,7 @@ public class FTPResource {
 	protected OutputStream os;
 	protected DataOutputStream dos;
 	protected BufferedReader buff;
+	protected BufferedInputStream filebuffer;
 	
 	public String header()
 	{
@@ -149,17 +155,18 @@ public class FTPResource {
 	
 	@GET
 	@Path("/download/{file}")
-	public String download(@PathParam ("file") String file) throws IOException
+	@Produces(MediaType.APPLICATION_OCTET_STREAM)
+	public Response download(@PathParam ("file") String file) throws IOException
 	{
 		if(!this.sckt.isConnected())
-			return this.header()+"<p>Vous devez vous connecter � un serveur FTP pour continuer</p>";
+			return Response.status(403).build(); //this.header()+"<p>Vous devez vous connecter � un serveur FTP pour continuer</p>";
 		this.scktTransfert = this.pasv();
 		this.write("RETR "+file+"\n", this.sckt);
 		String code = this.read(this.sckt);
 		System.out.println("code dl = "+code);
 		if(code.startsWith("550"))
 		{
-			return this.header()+"<p>Erreur 550</p>";
+			return Response.status(550).build();//this.header()+"<p>Erreur 550</p>";
 			
 		}
 		else if(code.startsWith("125"))
@@ -168,16 +175,16 @@ public class FTPResource {
 			String code2 = this.read(this.sckt) ;//je crois que ça bloque ici.
 //			System.out.println(code2);
 			if(code2.startsWith("226")){
-				return this.readFile(this.scktTransfert);
+				return this.readFile(this.scktTransfert, file);
 //				System.out.println(this.read(this.scktTransfert));
 //				return "sauce" ;
 			}
-			return "pas sauce" ;
+			return Response.status(500).build();
 		
 		}
 			
 		else
-			return "error "+code;
+			 return Response.status(500).build();
 	}
 	
 	public Socket pasv() throws IOException
@@ -217,24 +224,54 @@ public class FTPResource {
 		}
 	}
 	
-	public String readFile(Socket socket){
+	public Response readFile(Socket socket, String filename){
+		String[] infoFile = filename.split(Pattern.quote("."));
+		System.out.println(infoFile[1]);
+		System.out.println(filename);
+		int cursor =0;
+		
 		try {
+			int b;
 			this.is = socket.getInputStream();
 			this.isr = new InputStreamReader(is);
-			this.buff = new BufferedReader(isr);
+			this.filebuffer = new BufferedInputStream(is);
+			System.out.println(this.filebuffer.available());
 			String s = "" ;
 			String tmp ;
-			while((tmp = buff.readLine()) != null ) {
-				s = s + tmp + "\n" ;
+			while((b=this.filebuffer.read())!=-1 ) {
+				//data[cursor]=(byte)b;
+				//System.out.println(cursor);
+				cursor++;
+			}
+			this.filebuffer.close();
+			this.filebuffer = new BufferedInputStream(is);
+			byte[] data = new byte[cursor];
+			cursor = 0;
+			while((b=this.filebuffer.read())!=-1 ) {
+				data[cursor]=(byte)b;
+				System.out.println("dfsfsq"+cursor);
+				cursor++;
 			}
 			buff.close();
 			isr.close();
 			is.close();
+			this.filebuffer.close();
 			System.out.println(s);
-			return s ;
+			
+			//On crée un fichier temporaire
+			File tempFile = new File(filename);
+			FileOutputStream fos = new FileOutputStream(tempFile);
+			fos.write(data);
+			fos.close();
+			ResponseBuilder rb = Response.ok(tempFile);
+			rb.header("content-disposition", "attachement; filename="+tempFile.getName());
+			Response response = rb.build();
+			return response;
+			
+			//return s ;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			return "quentin de la vallée des phalempins" ;
+			return Response.status(500).build();
 		}
 	}
 	
