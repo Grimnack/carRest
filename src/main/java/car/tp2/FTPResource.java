@@ -1,28 +1,29 @@
 package main.java.car.tp2;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
@@ -187,6 +188,42 @@ public class FTPResource {
 			 return Response.status(500).build();
 	}
 	
+	@GET
+	@Path("/upload/{file}")
+	public void put(@PathParam ("file") String file ) throws IOException{
+		this.scktTransfert = this.pasv();
+		this.write("STOR "+file+"\n", this.sckt);
+		String code = this.read(this.sckt);
+		System.out.println("code dl = "+code);
+		if(code.startsWith("550"))
+		{
+			return ;
+		}
+		else if(code.startsWith("125"))
+		{
+			this.writeFile(file, scktTransfert);
+			if(this.read(sckt).startsWith("226")){
+				return ;
+			}
+		}
+	}
+	
+	private void writeFile(String file, Socket scktTransfert2) throws IOException {
+		File real = new File(file) ;
+		FileInputStream fis = new FileInputStream(real);
+		DataOutputStream dos = new DataOutputStream(scktTransfert2.getOutputStream());
+		byte[] buff = new byte[scktTransfert2.getSendBufferSize()];
+		int lecture = fis.read(buff);
+		while (lecture > 0 ){
+			System.out.println(lecture);
+			dos.write(buff,0,lecture);
+			lecture=fis.read(buff);
+		}
+		fis.close();
+		dos.flush();
+		
+	}
+
 	public Socket pasv() throws IOException
 	{
 		String response ="";
@@ -238,24 +275,21 @@ public class FTPResource {
 			System.out.println(this.filebuffer.available());
 			String s = "" ;
 			String tmp ;
+			List<Byte> byteList = new ArrayList<Byte>() ;
+			int nbByte = 0 ;
 			while((b=this.filebuffer.read())!=-1 ) {
-				//data[cursor]=(byte)b;
-				//System.out.println(cursor);
-				cursor++;
+				byteList.add(new Byte((byte)b)) ;
+				nbByte ++;
 			}
 			this.filebuffer.close();
-			this.filebuffer = new BufferedInputStream(is);
-			byte[] data = new byte[cursor];
-			cursor = 0;
-			while((b=this.filebuffer.read())!=-1 ) {
-				data[cursor]=(byte)b;
-				System.out.println("dfsfsq"+cursor);
-				cursor++;
+			byte[] data = new byte[nbByte];
+			for (int i = 0; i < data.length; i++) {
+				data[i] = byteList.get(i).byteValue() ; 
 			}
-			buff.close();
-			isr.close();
-			is.close();
-			this.filebuffer.close();
+						
+//			buff.close();
+//			isr.close();
+//			is.close();
 			System.out.println(s);
 			
 			//On crée un fichier temporaire
