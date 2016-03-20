@@ -28,6 +28,10 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 
+import org.apache.cxf.jaxrs.ext.multipart.Multipart;
+
+ 
+
 /**
  * Exemple de ressource REST accessible a l'adresse :
  * 
@@ -188,9 +192,9 @@ public class FTPResource {
 			 return Response.status(500).build();
 	}
 	
-	@GET
-	@Path("/upload/{file}")
-	public void put(@PathParam ("file") String file ) throws IOException{
+	@POST
+	@Path("/upload")
+	public void put(@Multipart String file ) throws IOException{
 		this.scktTransfert = this.pasv();
 		this.write("STOR "+file+"\n", this.sckt);
 		String code = this.read(this.sckt);
@@ -207,6 +211,26 @@ public class FTPResource {
 			}
 		}
 	}
+	
+	@GET
+	@Path("/deposer")
+	public String deposeForm()
+	{
+		if(! this.sckt.isConnected())
+		{
+			return this.header()+"<p>Veuillez vous connecter au serveur.</p>";
+		}
+		else
+		{
+			String form ="";
+			form+="<form name=\"uploadform\" method=\"POST\" action=\"upload\">";
+			form+="<input type=\"file\" name=\"file\"/>";
+			form+="<input type=\"submit\"/>";
+			form+="</form>";
+			return this.header()+form;
+		}
+	}
+	
 	
 	private void writeFile(String file, Socket scktTransfert2) throws IOException {
 		File real = new File(file) ;
